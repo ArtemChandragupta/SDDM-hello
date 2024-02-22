@@ -1,59 +1,170 @@
-/*
- *   Copyright 2016 David Edmundson <davidedmundson@kde.org>
- *
- *   This program is free software; you can redistribute it and/or modify
- *   it under the terms of the GNU Library General Public License as
- *   published by the Free Software Foundation; either version 2 or
- *   (at your option) any later version.
- *
- *   This program is distributed in the hope that it will be useful,
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *   GNU General Public License for more details
- *
- *   You should have received a copy of the GNU Library General Public
- *   License along with this program; if not, write to the
- *   Free Software Foundation, Inc.,
- *   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
- */
- 
-import QtQuick 2.2
+//
+// This file is part of Sugar Dark, a theme for the Simple Display Desktop Manager.
+//
+// Copyright 2018 Marian Arlt
+//
+// Sugar Dark is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Sugar Dark is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Sugar Dark. If not, see <https://www.gnu.org/licenses/>.
+//
 
-import org.kde.plasma.core 2.0 as PlasmaCore
-import org.kde.plasma.components 2.0 as PlasmaComponents
+import QtQuick 2.11
+import QtQuick.Controls 2.4
+import QtGraphicalEffects 1.0
 
-import QtQuick.Controls 1.3 as QQC
+Item {
+    id: sessionButton
+    height: root.font.pointSize
+    width: parent.width / 2
+    anchors.horizontalCenter: parent.horizontalCenter
 
-PlasmaComponents.ToolButton {
-    id: root
-    property int currentIndex: -1
+    property var selectedSession: selectSession.currentIndex
+    property string textConstantSession
 
-    implicitWidth: minimumWidth
+    ComboBox {
+        id: selectSession
 
-    visible: menu.items.length > 1
+        hoverEnabled: true
+        anchors.left: parent.left
 
-    // text: i18nd("plasma_lookandfeel_org.kde.lookandfeel", "Desktop Session: %1", instantiator.objectAt(currentIndex).text || "")
-    iconName: "system"
-    font.pointSize: config.fontSize
+        model: sessionModel
+        currentIndex: model.lastIndex
+        textRole: "name"
 
-    Component.onCompleted: {
-        currentIndex = sessionModel.lastIndex
-    }
-
-    menu: QQC.Menu {
-        id: menu
-        style: DropdownMenuStyle {}
-        Instantiator {
-            id: instantiator
-            model: sessionModel
-            onObjectAdded: menu.insertItem(index, object)
-            onObjectRemoved: menu.removeItem( object )
-            delegate: QQC.MenuItem {
+        delegate: ItemDelegate {
+            width: parent.width
+            anchors.horizontalCenter: parent.horizontalCenter
+            contentItem: Text {
                 text: model.name
-                onTriggered: {
-                    root.currentIndex = model.index
-                }
+                font.pointSize: root.font.pointSize * 0.8
+                color: selectSession.highlightedIndex === index ? "#444" : root.palette.highlight
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+            }
+            highlighted: parent.highlightedIndex === index
+            background: Rectangle {
+                color: selectSession.highlightedIndex === index ? root.palette.highlight : "transparent"
             }
         }
+
+        indicator {
+            visible: false
+        }
+
+        contentItem: Text {
+            id: displayedItem
+            text: (config.TranslateSession || (textConstantSession + ":")) + " " + selectSession.currentText
+            color: root.palette.text
+            verticalAlignment: Text.AlignVCenter
+            anchors.left: parent.left
+            anchors.leftMargin: 3
+            font.pointSize: root.font.pointSize * 0.8
+        }
+
+        background: Rectangle {
+            color: "transparent"
+            border.width: parent.visualFocus ? 1 : 0
+            border.color: "transparent"
+            height: parent.visualFocus ? 2 : 0
+            width: displayedItem.implicitWidth
+            anchors.top: parent.bottom
+            anchors.left: parent.left
+            anchors.leftMargin: 3
+        }
+
+        popup: Popup {
+            id: popupHandler
+            y: parent.height - 1
+            rightMargin: config.ForceRightToLeft == "true" ? root.padding + sessionButton.width / 2 : undefined
+            width: sessionButton.width
+            implicitHeight: contentItem.implicitHeight
+            padding: 10
+
+            contentItem: ListView {
+                clip: true
+                implicitHeight: contentHeight + 20
+                model: selectSession.popup.visible ? selectSession.delegateModel : null
+                currentIndex: selectSession.highlightedIndex
+                ScrollIndicator.vertical: ScrollIndicator { }
+            }
+
+            background: Rectangle {
+                radius: config.RoundCorners / 2
+                color: "#444"
+                layer.enabled: true
+                layer.effect: DropShadow {
+                    transparentBorder: true
+                    horizontalOffset: 0
+                    verticalOffset: 0
+                    radius: 100
+                    samples: 201
+                    cached: true
+                    color: "#88000000"
+                }
+            }
+
+            enter: Transition {
+                NumberAnimation { property: "opacity"; from: 0; to: 1 }
+            }
+        }
+
+        states: [
+            State {
+                name: "pressed"
+                when: selectSession.down
+                PropertyChanges {
+                    target: displayedItem
+                    color: Qt.darker(root.palette.highlight, 1.1)
+                }
+                PropertyChanges {
+                    target: selectSession.background
+                    border.color: Qt.darker(root.palette.highlight, 1.1)
+                }
+            },
+            State {
+                name: "hovered"
+                when: selectSession.hovered
+                PropertyChanges {
+                    target: displayedItem
+                    color: Qt.lighter(root.palette.highlight, 1.1)
+                }
+                PropertyChanges {
+                    target: selectSession.background
+                    border.color: Qt.lighter(root.palette.highlight, 1.1)
+                }
+            },
+            State {
+                name: "focused"
+                when: selectSession.visualFocus
+                PropertyChanges {
+                    target: displayedItem
+                    color: root.palette.highlight
+                }
+                PropertyChanges {
+                    target: selectSession.background
+                    border.color: root.palette.highlight
+                }
+            }
+        ]
+
+        transitions: [
+            Transition {
+                PropertyAnimation {
+                    properties: "color, border.color"
+                    duration: 150
+                }
+            }
+        ]
+
     }
+
 }
