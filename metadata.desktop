@@ -1,7 +1,7 @@
 [SddmGreeterTheme]
-Name=Apple-Sonoma-v2
+Name=SDDM-hello
 Description=apple like style
-Author=zayronxio
+Author=ArtemChandragupta
 Copyright=(c) 2022, zayronxio
 License=gpl3.0
 Type=sddm-theme
@@ -10,5 +10,5 @@ Website=https://github.com/varlesh/rounded
 Screenshot=screenshot.png
 MainScript=Main.qml
 ConfigFile=theme.conf
-Theme-Id=Apple-Sonoma-v2
+Theme-Id=SDDM-hello
 Theme-API=2.0
